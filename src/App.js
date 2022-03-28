@@ -35,84 +35,46 @@ const edges = [
 function App() {
   const [nodes, setNodes] = useState(elements);
   const [links, setLinks] = useState(edges);
-  const [simulation, _] = useState(
-    forceSimulation(elements)
-      .force(
-        "charge",
-        forceManyBody().strength(-50).distanceMax(2000).distanceMin(1)
-      )
-      .force(
-        "link",
-        forceLink()
-          .links(edges)
-          .id((id) => id.id)
-          .distance(100)
-      )
-      .force("center", forceCenter(500, 500))
-      .force("collide", forceCollide().radius(150).strength(0.7))
-      .force("x", forceX().strength(0.7).x(0.5))
-      .force("y", forceY().strength(0.7).y(0.5)).on("tick",()=>{
-        console.log("tick");
-        console.log(nodes);
-      })
-  );
 
+  const simulation = forceSimulation(elements)
+  .force(
+    "charge",
+    forceManyBody().strength(2).distanceMax(2000).distanceMin(1)
+  )
+  .force(
+    "link",
+    forceLink()
+      .links(edges)
+      .id((id) => id.id)
+      .distance(100)
+  )
+  .force("center", forceCenter(250, 350))
+  .force("collide", forceCollide().radius(150).strength(0.7))
+  .force("x", forceX().strength(0.7))
+  .force("y", forceY().strength(0.7));
+  const layout = () =>{
+    // update state on every frame
 
-  const tick = () => {
-    let alpha = simulation.alpha();
-    let alphaMin = simulation.alphaMin();
-    console.log("alphaMin");
-    console.log(alphaMin);
-    console.log(alpha);
-    console.log(alpha < alphaMin);
+    simulation.on("tick", () => {
+      setNodes([...simulation.nodes()])
+    })
+  
+    // copy nodes into simulation
+    simulation.nodes([...nodes])
+    // slow down with a small alpha
+    simulation.alpha(0.1).restart()
+  
+  }
 
-    if (alpha < alphaMin) {
-      // clearInterval(timerID);
-    } else {
-      simulation.tick();
-      setNodes((prev) =>
-        simulation.nodes().map((n) => {
-          return { ...n, position: { x: n.x, y: n.y } };
-        })
-      );
-      console.log("heree 2");
-    }
-  };
-
-  const layout = () => {
-    console.log(simulation);
-
-    // simulation.nodes(nodes);
-    console.log("heree 1");
-    simulation.tick();
-    setNodes((prev) =>
-      simulation.nodes().map((n) => {
-        return { ...n, position: { x: n.x, y: n.y } };
-      })
-    );
-
-    // simulation.stop();
-    // setTimerID(setInterval(() => tick(), 100000))
-    // setInterval(() => tick(), 40)
-    console.log("simulat");
-    console.log(simulation.nodes());
-    // console.log(nodes);
-  };
 
   useEffect(() => {
+  
     layout();
+  
+    // stop simulation on unmount
+    return () => simulation.stop();
+  }, [])
 
-    // return () => {
-    //   if (timerID) clearInterval(timerID);
-    // };
-  }, []);
-
-  useEffect(() => {
-    console.log("nodes");
-    console.log(edges);
-  }, [nodes]);
-  console.log("final nodes");
-    console.log(nodes);
   return (
     <>
       <div
@@ -123,21 +85,29 @@ function App() {
           <ReactFlow
             defaultPosition={[100, 100]}
             maxZoom={20}
-            // elements={[...graph.nodes, ...graph.edges]}
             elements={[
               ...nodes.map((n) => {
-                return { ...n, position: { x: n.x, y: n.y } };
+                return { id: n.id, data: n.data, position: { x: n.x, y: n.y } };
               }),
               ...edges.map((e) => {
                 return {
-                  ...e,
-                  id: e.id.toString(),
+                  id: e.id,
                   source: e.source.id,
                   target: e.target.id,
                 };
               }),
             ]}
-            onNodeDragStop={(event, node) => layout()}
+            onNodeDragStop={(event, node) => {
+              layout();
+            }}
+
+            // onNodeDragStart={(event,node) => {
+            //   simulation.alphaTarget(0.3).restart();
+            // }}
+            // onNodeDragStop={(event, node) => {
+            //   simulation.alphaTarget(0).stop();
+
+            // }}
           />
         </ReactFlowProvider>
       </div>
